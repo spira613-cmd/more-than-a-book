@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Message = {
@@ -16,16 +17,56 @@ type SummaryData = {
   strategy: string;
 };
 
-type Screen = "form" | "journalChoice" | "journalDisplay" | "coaching" | "summary";
+type Screen = "form" | "journalChoice" | "journalDisplay" | "coaching" | "summary" | "selfDeclared";
 
 export default function Home() {
+  const router = useRouter();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.push("/login");
+      } else {
+        setUserId(data.session.user.id);
+        setAuthChecked(true);
+      }
+    });
+  }, [router]);
+
   const [chapterTitle, setChapterTitle] = useState("");
   const [summaryInput, setSummaryInput] = useState("");
-  const [quotesInput, setQuotesInput] = useState("");
   const [actionInput, setActionInput] = useState("");
   const [screen, setScreen] = useState<Screen>("form");
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
+  const [selfCommitment, setSelfCommitment] = useState("");
+  const [selfSaving, setSelfSaving] = useState(false);
+
+  function playChime() {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx();
+      const notes = [523.25, 659.25, 783.99];
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        const startTime = ctx.currentTime + i * 0.12;
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.2, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.5);
+        osc.start(startTime);
+        osc.stop(startTime + 0.5);
+      });
+    } catch (e) {
+      // audio not supported, fail silently
+    }
+  }
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [userReply, setUserReply] = useState("");
@@ -38,12 +79,11 @@ export default function Home() {
   function buildChapterSummary() {
     const parts = [];
     if (summaryInput.trim()) parts.push(`Summary: ${summaryInput.trim()}`);
-    if (quotesInput.trim()) parts.push(`Quotes & Stories: ${quotesInput.trim()}`);
     if (actionInput.trim()) parts.push(`Action Steps & Questions: ${actionInput.trim()}`);
     return parts.join("\n\n");
   }
 
-async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
+  async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
     setJournalLoading(true);
     setScreen("journalDisplay");
 
@@ -60,6 +100,7 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
     const data = await res.json();
     setJournal(data.journal);
     setJournalLoading(false);
+    playChime();
   }
 
   async function startCoaching() {
@@ -131,6 +172,7 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
 
     if (data.summary) {
       await supabase.from("chapters").insert({
+        user_id: userId,
         chapter_title: chapterTitle,
         chapter_summary: buildChapterSummary(),
         journal: journal,
@@ -143,6 +185,47 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
         lock_in_statement: data.lockInStatement,
       });
     }
+  }
+
+  async function saveSelfDeclared() {
+    if (!selfCommitment.trim()) return;
+    setSelfSaving(true);
+
+    const res = await fetch("/api/affirmation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        chapterTitle,
+        commitment: selfCommitment.trim(),
+      }),
+    });
+
+    const data = await res.json();
+
+    await supabase.from("chapters").insert({
+      user_id: userId,
+      chapter_title: chapterTitle,
+      chapter_summary: buildChapterSummary(),
+      journal: journal,
+      conversation: [],
+      chapter_takeaway: "",
+      personal_insight: "",
+      commitment: selfCommitment.trim(),
+      obstacle: "",
+      strategy: "",
+      lock_in_statement: data.lockInStatement,
+    });
+
+    setSelfSaving(false);
+    window.location.href = "/checkin";
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <p className="text-gray-400 italic">Loading...</p>
+      </div>
+    );
   }
 
   if (screen === "form") {
@@ -172,31 +255,15 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
           />
 
           <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">📝 Summary</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">📝 Summary & Quotes</label>
             <p className="text-xs text-gray-500 mb-2">
-              What was this chapter about? What were the biggest ideas?
+              What was this chapter about? Any meaningful quotes or stories you want to remember?
             </p>
             <textarea
-              className="w-full border rounded-lg p-3 h-24"
+              className="w-full border rounded-lg p-3 h-32"
               placeholder="Start typing or use voice-to-text..."
               value={summaryInput}
               onChange={(e) => setSummaryInput(e.target.value)}
-              spellCheck={true}
-            />
-          </div>
-
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              💬 Quotes & Stories
-            </label>
-            <p className="text-xs text-gray-500 mb-2">
-              Any meaningful quotes or stories you want to remember?
-            </p>
-            <textarea
-              className="w-full border rounded-lg p-3 h-24"
-              placeholder="Start typing or use voice-to-text..."
-              value={quotesInput}
-              onChange={(e) => setQuotesInput(e.target.value)}
               spellCheck={true}
             />
           </div>
@@ -222,12 +289,30 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
             voice-to-text instead of typing.
           </p>
 
-          <button
-            onClick={() => setScreen("journalChoice")}
-            className="w-full bg-black text-white rounded-lg py-3 font-medium"
-          >
-            Continue
-          </button>
+          <p className="font-medium mb-3">How would you like me to polish your journal?</p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => generateJournal("keep")}
+              className="w-full border rounded-lg py-3 font-medium text-left px-4"
+            >
+              <div className="font-semibold">Keep It Yours</div>
+              <div className="text-sm text-gray-500">Just proofread grammar and formatting.</div>
+            </button>
+            <button
+              onClick={() => generateJournal("flow")}
+              className="w-full border rounded-lg py-3 font-medium text-left px-4"
+            >
+              <div className="font-semibold">Make It Flow</div>
+              <div className="text-sm text-gray-500">Rewrite for smoother readability.</div>
+            </button>
+            <button
+              onClick={() => generateJournal("expand")}
+              className="w-full bg-black text-white rounded-lg py-3 font-medium text-left px-4"
+            >
+              <div className="font-semibold">Add Context</div>
+              <div className="text-sm text-gray-200">Includes related ideas from this book or author.</div>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -288,7 +373,15 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
           {journalLoading ? (
             <p className="text-gray-400 italic mb-6">Polishing your journal...</p>
           ) : (
-            <p className="whitespace-pre-wrap text-gray-800 mb-8 leading-relaxed">{journal}</p>
+            <>
+              <div className="text-center mb-4">
+                <span className="text-3xl">🎉</span>
+                <p className="text-sm font-medium text-gray-500 mt-1">
+                  Nice work — you showed up for yourself today.
+                </p>
+              </div>
+              <p className="whitespace-pre-wrap text-gray-800 mb-8 leading-relaxed">{journal}</p>
+            </>
           )}
 
           {!journalLoading && (
@@ -305,11 +398,51 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
                   onClick={startCoaching}
                   className="w-full bg-black text-white rounded-lg py-3 font-medium"
                 >
-                  🧠 Build an Action Plan
+                  🧠 Help me create an action
                 </button>
+                <button
+                  onClick={() => setScreen("selfDeclared")}
+                  className="w-full border rounded-lg py-3 font-medium"
+                >
+                  ✅ I already have one in mind
+                </button>
+                <a
+                  href="/journal"
+                  className="w-full text-center border rounded-lg py-3 font-medium text-gray-600"
+                >
+                  ✔️ Done for today
+                </a>
               </div>
             </>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "selfDeclared") {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6">
+        <div className="w-full max-w-xl bg-white rounded-2xl shadow p-8">
+          <h1 className="text-xl font-semibold mb-2">{chapterTitle}</h1>
+          <p className="text-gray-500 mb-6">
+            What's the action you're committing to?
+          </p>
+
+          <textarea
+            className="w-full border rounded-lg p-3 h-32 mb-6"
+            placeholder="e.g. I will lay out my gym clothes the night before, every night this week."
+            value={selfCommitment}
+            onChange={(e) => setSelfCommitment(e.target.value)}
+          />
+
+          <button
+            onClick={saveSelfDeclared}
+            disabled={selfSaving || !selfCommitment.trim()}
+            className="w-full bg-black text-white rounded-lg py-3 font-medium disabled:opacity-40"
+          >
+            {selfSaving ? "Saving..." : "Save My Commitment"}
+          </button>
         </div>
       </div>
     );
@@ -412,7 +545,6 @@ async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
               onClick={() => {
                 setChapterTitle("");
                 setSummaryInput("");
-                setQuotesInput("");
                 setActionInput("");
                 setJournal("");
                 setMessages([]);

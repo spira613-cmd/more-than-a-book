@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
 type Chapter = {
@@ -8,25 +9,50 @@ type Chapter = {
   chapter_title: string;
   journal: string;
   created_at: string;
+  commitment: string;
+  lock_in_statement: string;
 };
 
 export default function JournalArchive() {
+  const router = useRouter();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    loadChapters();
-  }, []);
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.push("/login");
+      } else {
+        setAuthChecked(true);
+        loadChapters(data.session.user.id);
+      }
+    });
+  }, [router]);
 
-  async function loadChapters() {
+  async function loadChapters(userId: string) {
     setLoading(true);
     const { data } = await supabase
       .from("chapters")
-      .select("id, chapter_title, journal, created_at")
+      .select("id, chapter_title, journal, created_at, commitment, lock_in_statement")
+      .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
     setChapters(data || []);
     setLoading(false);
+  }
+
+  function toggleExpand(id: number) {
+    setExpandedId((prev) => (prev === id ? null : id));
+  }
+
+  if (!authChecked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <p className="text-gray-400 italic">Loading...</p>
+      </div>
+    );
   }
 
   return (
@@ -67,6 +93,32 @@ export default function JournalArchive() {
                 <p className="journal-font text-2xl leading-[35px] text-stone-800 whitespace-pre-wrap">
                   {c.journal || "No journal entry recorded for this chapter."}
                 </p>
+
+                {c.commitment && (
+                  <div className="mt-4 font-sans">
+                    <button
+                      onClick={() => toggleExpand(c.id)}
+                      className="text-sm text-stone-500 underline"
+                    >
+                      {expandedId === c.id ? "Hide my actionable ▲" : "Show my actionable ▼"}
+                    </button>
+
+                    {expandedId === c.id && (
+                      <div className="mt-3 bg-stone-50 border border-stone-200 rounded-lg p-4">
+                        <div className="text-xs font-semibold text-stone-500 mb-1">
+                          COMMITMENT
+                        </div>
+                        <p className="text-stone-700 mb-3">{c.commitment}</p>
+
+                        {c.lock_in_statement && (
+                          <div className="bg-gray-900 text-white rounded-lg p-3 italic text-sm leading-relaxed">
+                            {c.lock_in_statement}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>
