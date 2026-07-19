@@ -40,16 +40,25 @@ You may combine up to 2 closely related things in one message (e.g. obstacle + s
     ...(conversationHistory || []),
   ];
 
-  const response = await anthropic.messages.create({
-    model: "claude-sonnet-4-5",
-    max_tokens: 500,
-    system: systemPrompt,
-    messages: messages,
-  });
+  try {
+    const response = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 500,
+      system: systemPrompt,
+      messages: messages,
+    });
 
-  const textBlock = response.content.find((block) => block.type === "text");
+    const textBlock = response.content.find((block) => block.type === "text");
 
-  return Response.json({
-    reply: textBlock && "text" in textBlock ? textBlock.text : "",
-  });
+    return Response.json({
+      reply: textBlock && "text" in textBlock ? textBlock.text : "",
+    });
+  } catch (err: any) {
+    console.error("Coach API error:", err);
+    return Response.json({
+      reply: "",
+      error:
+        "The AI coach is a little overloaded right now — give it a moment and try again.",
+    });
+  }
 }

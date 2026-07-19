@@ -127,13 +127,29 @@ export default function CheckIn() {
   return (
     <div className="flex min-h-screen flex-col items-center bg-gray-50 p-6">
       <div className="w-full max-w-xl">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-semibold">Your Commitments</h1>
+        <div className="flex justify-between items-center mb-4">
+          <a href="/" className="text-sm text-gray-500 underline">
+            ← Your journey
+          </a>
           <div className="bg-white border rounded-full px-4 py-1.5 flex items-center gap-2">
             <span className="text-amber-400">⭐</span>
             <span className="text-sm font-medium">{totalStars} actualizations</span>
           </div>
         </div>
+
+        <h1 className="text-center text-2xl font-bold mb-2">
+          You're transforming — pick one today
+        </h1>
+        <p className="text-center text-gray-500 mb-6">
+          Check in on your commitments, then continue to today's chapter.
+        </p>
+
+        <a
+          href="/?screen=form"
+          className="block w-full bg-black text-white text-center rounded-lg py-3 font-medium mb-8"
+        >
+          Continue to Today's Chapter →
+        </a>
 
         {loading ? (
           <p className="text-gray-400 italic">Loading...</p>
@@ -180,8 +196,11 @@ export default function CheckIn() {
           </div>
         )}
 
-        <a href="/" className="block text-center mt-6 text-gray-500 underline">
-          ← Back to start a new chapter
+        <a
+          href="/?screen=form"
+          className="block w-full border text-center rounded-lg py-3 font-medium mt-6"
+        >
+          Continue to Today's Chapter →
         </a>
       </div>
     </div>

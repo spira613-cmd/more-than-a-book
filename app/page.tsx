@@ -17,12 +17,19 @@ type SummaryData = {
   strategy: string;
 };
 
-type Screen = "form" | "journalChoice" | "journalDisplay" | "coaching" | "summary" | "selfDeclared";
+type ChapterEntry = {
+  id: number;
+  created_at: string;
+};
+
+type Screen = "spiral" | "form" | "journalChoice" | "journalDisplay" | "coaching" | "summary" | "selfDeclared";
 
 export default function Home() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [entries, setEntries] = useState<ChapterEntry[]>([]);
+  const [entriesLoading, setEntriesLoading] = useState(true);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -31,14 +38,33 @@ export default function Home() {
       } else {
         setUserId(data.session.user.id);
         setAuthChecked(true);
+        loadEntries(data.session.user.id);
+        if (typeof window !== "undefined") {
+          const params = new URLSearchParams(window.location.search);
+          if (params.get("screen") === "form") {
+            setScreen("form");
+          }
+        }
       }
     });
   }, [router]);
 
+  async function loadEntries(uid: string) {
+    setEntriesLoading(true);
+    const { data } = await supabase
+      .from("chapters")
+      .select("id, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: true });
+
+    setEntries(data || []);
+    setEntriesLoading(false);
+  }
+
   const [chapterTitle, setChapterTitle] = useState("");
   const [summaryInput, setSummaryInput] = useState("");
   const [actionInput, setActionInput] = useState("");
-  const [screen, setScreen] = useState<Screen>("form");
+  const [screen, setScreen] = useState<Screen>("spiral");
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
   const [selfCommitment, setSelfCommitment] = useState("");
@@ -118,7 +144,7 @@ export default function Home() {
     });
 
     const data = await res.json();
-    setMessages([{ role: "assistant", content: data.reply }]);
+    setMessages([{ role: "assistant", content: data.error || data.reply }]);
     setLoading(false);
   }
 
@@ -147,7 +173,7 @@ export default function Home() {
     });
 
     const data = await res.json();
-    setMessages([...newMessages, { role: "assistant", content: data.reply }]);
+    setMessages([...newMessages, { role: "assistant", content: data.error || data.reply }]);
     setLoading(false);
   }
 
@@ -210,7 +236,7 @@ export default function Home() {
       conversation: [],
       chapter_takeaway: "",
       personal_insight: "",
-      commitment: selfCommitment.trim(),
+      commitment: data.correctedCommitment || selfCommitment.trim(),
       obstacle: "",
       strategy: "",
       lock_in_statement: data.lockInStatement,
@@ -220,10 +246,107 @@ export default function Home() {
     window.location.href = "/checkin";
   }
 
-  if (!authChecked) {
+  if (!authChecked || entriesLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <p className="text-gray-400 italic">Loading...</p>
+      </div>
+    );
+  }
+
+ if (screen === "spiral") {
+    const completedCount = entries.length;
+    const nextDayNumber = completedCount + 1;
+    const totalSlots = 15;
+    const milestoneDays: Record<number, string> = {
+      1: "You started!",
+      5: "Your 5-day email",
+      10: "Your 10-day assessment",
+      15: "Share with a friend",
+    };
+
+    return (
+      <div className="flex min-h-screen flex-col items-center bg-gray-50 p-6">
+        <div className="w-full max-w-2xl">
+          <div className="flex justify-end gap-4 mb-4">
+            <a href="/journal" className="text-sm text-gray-500 underline">
+              View My Journal →
+            </a>
+            <a href="/checkin" className="text-sm text-gray-500 underline">
+              View My Commitments →
+            </a>
+          </div>
+
+          <p className="text-center text-xs uppercase tracking-wide text-gray-400 mb-1">
+            More Than A Book
+          </p>
+          <h1 className="text-center text-2xl font-semibold mb-8">Your journey</h1>
+
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-x-4 gap-y-6 mb-8 justify-items-center">
+            {Array.from({ length: totalSlots }, (_, i) => i + 1).map((dayNum) => {
+              const isCompleted = dayNum <= completedCount;
+              const isNext = dayNum === nextDayNumber;
+              const milestoneLabel = milestoneDays[dayNum];
+
+              let circle;
+              if (isCompleted) {
+                circle = (
+                  <a
+                    href="/checkin"
+                    className="w-16 h-16 rounded-full bg-teal-100 border border-teal-300 flex flex-col items-center justify-center hover:bg-teal-200 transition"
+                  >
+                    <span className="text-[10px] text-teal-700">DAY</span>
+                    <span className="text-lg font-semibold text-teal-800">
+                      {String(dayNum).padStart(2, "0")}
+                    </span>
+                  </a>
+                );
+              } else if (isNext) {
+                circle = (
+                  <a
+                    href="/checkin"
+                    className="w-16 h-16 rounded-full bg-black text-white flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg text-center"
+                  >
+                    <span className="text-[9px] leading-tight px-1">Check In</span>
+                    <span className="text-[9px] leading-tight px-1">& Continue</span>
+                  </a>
+                );
+              } else {
+                circle = (
+                  <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 flex flex-col items-center justify-center opacity-60">
+                    <span className="text-[9px] text-gray-400">DAY</span>
+                    <span className="text-base font-medium text-gray-400">
+                      {String(dayNum).padStart(2, "0")}
+                    </span>
+                  </div>
+                );
+              }
+
+              return (
+                <div key={dayNum} className="flex flex-col items-center gap-1.5 w-20">
+                  {circle}
+                  {milestoneLabel && (
+                    <span
+                      className={
+                        "text-[11px] text-center font-medium leading-tight " +
+                        (isCompleted || isNext ? "text-amber-600" : "text-gray-400")
+                      }
+                    >
+                      ⭐ {milestoneLabel}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-center text-sm font-medium mb-1">
+            Tap "Check In & Continue" to see your commitments and write today's entry
+          </p>
+          <p className="text-center text-xs text-gray-400">
+            {completedCount} {completedCount === 1 ? "day" : "days"} written so far
+          </p>
+        </div>
       </div>
     );
   }
@@ -550,7 +673,7 @@ export default function Home() {
                 setMessages([]);
                 setSummaryData(null);
                 setLockInStatement("");
-                setScreen("form");
+                setScreen("spiral");
               }}
               className="w-full mt-6 border rounded-lg py-3 font-medium"
             >
