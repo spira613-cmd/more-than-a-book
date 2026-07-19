@@ -63,14 +63,38 @@ export default function Home() {
     setEntriesLoading(false);
   }
 
-  const [chapterTitle, setChapterTitle] = useState("");
-  const [summaryInput, setSummaryInput] = useState("");
-  const [actionInput, setActionInput] = useState("");
+  const [chapterTitle, setChapterTitle] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_chapterTitle") || "";
+  });
+  const [summaryInput, setSummaryInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_summaryInput") || "";
+  });
+  const [actionInput, setActionInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_actionInput") || "";
+  });
   const [screen, setScreen] = useState<Screen>("spiral");
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
   const [selfCommitment, setSelfCommitment] = useState("");
   const [selfSaving, setSelfSaving] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_chapterTitle", chapterTitle);
+  }, [chapterTitle]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_summaryInput", summaryInput);
+  }, [summaryInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_actionInput", actionInput);
+  }, [actionInput]);
 
   function playChime() {
     try {
@@ -115,20 +139,37 @@ export default function Home() {
     setJournalLoading(true);
     setScreen("journalDisplay");
 
-    const res = await fetch("/api/journal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chapterTitle,
-        chapterSummary: buildChapterSummary(),
-        editingLevel,
-      }),
-    });
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const data = await res.json();
-    setJournal(data.journal);
-    setJournalLoading(false);
-    playChime();
+      const res = await fetch("/api/journal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chapterTitle,
+          chapterSummary: buildChapterSummary(),
+          editingLevel,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const data = await res.json();
+      setJournal(
+        data.error ||
+          data.journal ||
+          "Something went wrong — please try again."
+      );
+      if (!data.error) playChime();
+    } catch (err) {
+      console.error("generateJournal failed:", err);
+      setJournal(
+        "This is taking longer than expected. Please try again — your draft is saved, nothing is lost."
+      );
+    } finally {
+      setJournalLoading(false);
+    }
   }
 
   async function startCoaching() {
