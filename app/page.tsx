@@ -27,6 +27,7 @@ type Screen = "spiral" | "form" | "journalChoice" | "journalDisplay" | "coaching
 export default function Home() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [entries, setEntries] = useState<ChapterEntry[]>([]);
   const [entriesLoading, setEntriesLoading] = useState(true);
@@ -37,6 +38,7 @@ export default function Home() {
         router.push("/login");
       } else {
         setUserId(data.session.user.id);
+        setUserEmail(data.session.user.email || null);
         setAuthChecked(true);
         loadEntries(data.session.user.id);
         if (typeof window !== "undefined") {
@@ -176,7 +178,21 @@ export default function Home() {
     setMessages([...newMessages, { role: "assistant", content: data.error || data.reply }]);
     setLoading(false);
   }
+async function checkAndSendDigest() {
+    if (!userId || !userEmail) return;
+    const { count } = await supabase
+      .from("chapters")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
 
+    if (count === 5) {
+      fetch("/api/digest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, userEmail }),
+      }).catch((err) => console.error("Digest trigger failed:", err));
+    }
+  }
   async function wrapUp() {
     setSummaryLoading(true);
     setScreen("summary");
@@ -208,10 +224,13 @@ export default function Home() {
         commitment: data.summary.commitment,
         obstacle: data.summary.obstacle,
         strategy: data.summary.strategy,
-        lock_in_statement: data.lockInStatement,
+       lock_in_statement: data.lockInStatement,
       });
+      checkAndSendDigest();
     }
   }
+    
+  
 
   async function saveSelfDeclared() {
     if (!selfCommitment.trim()) return;
