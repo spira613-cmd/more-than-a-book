@@ -302,15 +302,24 @@ export default function Home() {
                   </a>
                 );
               } else if (isNext) {
-                circle = (
-                  <a
-                    href="/checkin"
-                    className="w-16 h-16 rounded-full bg-black text-white flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg text-center"
-                  >
-                    <span className="text-[9px] leading-tight px-1">Check In</span>
-                    <span className="text-[9px] leading-tight px-1">& Continue</span>
-                  </a>
-                );
+                circle =
+                  dayNum === 1 ? (
+                    <a
+                      href="/?screen=form"
+                      className="w-16 h-16 rounded-full bg-black text-white flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg"
+                    >
+                      <span className="text-[10px]">DAY</span>
+                      <span className="text-lg font-semibold">01</span>
+                    </a>
+                  ) : (
+                    <a
+                      href="/checkin"
+                      className="w-16 h-16 rounded-full bg-black text-white flex flex-col items-center justify-center hover:bg-gray-800 transition shadow-lg text-center"
+                    >
+                      <span className="text-[9px] leading-tight px-1">Check In</span>
+                      <span className="text-[9px] leading-tight px-1">& Continue</span>
+                    </a>
+                  );
               } else {
                 circle = (
                   <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 flex flex-col items-center justify-center opacity-60">
@@ -341,7 +350,9 @@ export default function Home() {
           </div>
 
           <p className="text-center text-sm font-medium mb-1">
-            Tap "Check In & Continue" to see your commitments and write today's entry
+            {nextDayNumber === 1
+              ? "Tap Day 01 to write your first entry"
+              : 'Tap "Check In & Continue" to see your commitments and write today\'s entry'}npm run dev
           </p>
           <p className="text-center text-xs text-gray-400">
             {completedCount} {completedCount === 1 ? "day" : "days"} written so far
