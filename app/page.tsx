@@ -301,7 +301,7 @@ async function checkAndSendDigest() {
       strategy: "",
       lock_in_statement: data.lockInStatement,
     });
-
+checkAndSendDigest();
     setSelfSaving(false);
     window.location.href = "/checkin";
   }
