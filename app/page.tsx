@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -8,6 +8,8 @@ type Message = {
   role: "user" | "assistant";
   content: string;
 };
+
+type ReflectionField = "remember" | "stoodOut" | "stopThink" | "actionSuggested" | "extra";
 
 type SummaryData = {
   chapterTakeaway: string;
@@ -67,14 +69,32 @@ export default function Home() {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("draft_chapterTitle") || "";
   });
-  const [summaryInput, setSummaryInput] = useState(() => {
+  const [rememberInput, setRememberInput] = useState(() => {
     if (typeof window === "undefined") return "";
-    return localStorage.getItem("draft_summaryInput") || "";
+    return localStorage.getItem("draft_remember") || "";
   });
-  const [actionInput, setActionInput] = useState(() => {
+  const [stoodOutInput, setStoodOutInput] = useState(() => {
     if (typeof window === "undefined") return "";
-    return localStorage.getItem("draft_actionInput") || "";
+    return localStorage.getItem("draft_stoodOut") || "";
   });
+  const [stopThinkInput, setStopThinkInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_stopThink") || "";
+  });
+  const [actionSuggestedInput, setActionSuggestedInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_actionSuggested") || "";
+  });
+  const [extraInput, setExtraInput] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("draft_extra") || "";
+  });
+  const [showExtraBox, setShowExtraBox] = useState(false);
+  const [activeField, setActiveField] = useState<ReflectionField>("remember");
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const recognitionRef = useRef<any>(null);
+  const activeFieldRef = useRef<ReflectionField>("remember");
   const [screen, setScreen] = useState<Screen>("spiral");
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
@@ -86,15 +106,55 @@ export default function Home() {
     localStorage.setItem("draft_chapterTitle", chapterTitle);
   }, [chapterTitle]);
 
+  // One-time migration: carry over any in-progress draft from the old two-box
+  // layout so switching to the four-box layout doesn't silently lose it.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("draft_summaryInput", summaryInput);
-  }, [summaryInput]);
+    const oldSummary = localStorage.getItem("draft_summaryInput");
+    const oldAction = localStorage.getItem("draft_actionInput");
+    if (oldSummary && !localStorage.getItem("draft_remember")) {
+      setRememberInput(oldSummary);
+    }
+    if (oldAction && !localStorage.getItem("draft_actionSuggested")) {
+      setActionSuggestedInput(oldAction);
+    }
+    if (oldSummary || oldAction) {
+      localStorage.removeItem("draft_summaryInput");
+      localStorage.removeItem("draft_actionInput");
+    }
+  }, []);
+
+  useEffect(() => {
+    setSpeechSupported(
+      typeof window !== "undefined" &&
+        !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
+    );
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    localStorage.setItem("draft_actionInput", actionInput);
-  }, [actionInput]);
+    localStorage.setItem("draft_remember", rememberInput);
+  }, [rememberInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_stoodOut", stoodOutInput);
+  }, [stoodOutInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_stopThink", stopThinkInput);
+  }, [stopThinkInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_actionSuggested", actionSuggestedInput);
+  }, [actionSuggestedInput]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("draft_extra", extraInput);
+  }, [extraInput]);
 
   function playChime() {
     try {
@@ -129,10 +189,66 @@ export default function Home() {
   const [summaryLoading, setSummaryLoading] = useState(false);
 
   function buildChapterSummary() {
-    const parts = [];
-    if (summaryInput.trim()) parts.push(`Summary: ${summaryInput.trim()}`);
-    if (actionInput.trim()) parts.push(`Action Steps & Questions: ${actionInput.trim()}`);
+    const parts = [
+      rememberInput.trim(),
+      stoodOutInput.trim(),
+      stopThinkInput.trim(),
+      actionSuggestedInput.trim(),
+      extraInput.trim(),
+    ].filter(Boolean);
     return parts.join("\n\n");
+  }
+
+  function appendToField(field: ReflectionField, text: string) {
+    const setters: Record<ReflectionField, (updater: (prev: string) => string) => void> = {
+      remember: setRememberInput,
+      stoodOut: setStoodOutInput,
+      stopThink: setStopThinkInput,
+      actionSuggested: setActionSuggestedInput,
+      extra: setExtraInput,
+    };
+    setters[field]((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+  }
+
+  function toggleListening() {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const SpeechRecognitionCtor =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setSpeechSupported(false);
+      return;
+    }
+
+    activeFieldRef.current = activeField;
+    if (activeField === "extra") setShowExtraBox(true);
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event: any) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          appendToField(activeFieldRef.current, result[0].transcript.trim());
+        }
+      }
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListening(true);
   }
 
   async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
@@ -448,40 +564,106 @@ checkAndSendDigest();
             onChange={(e) => setChapterTitle(e.target.value)}
           />
 
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">📝 Summary & Quotes</label>
-            <p className="text-xs text-gray-500 mb-2">
-              What was this chapter about? Any meaningful quotes or stories you want to remember?
+          <div className="mb-1">
+            <p className="text-sm font-semibold text-gray-700 mb-0.5">
+              Before the chapter fades, capture what you remember.
             </p>
-            <textarea
-              className="w-full border rounded-lg p-3 h-32"
-              placeholder="Start typing or use voice-to-text..."
-              value={summaryInput}
-              onChange={(e) => setSummaryInput(e.target.value)}
-              spellCheck={true}
-            />
+            <p className="text-xs text-gray-400 mb-3">
+              Answer whatever comes to mind. A sentence is enough.
+            </p>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
-              ✅ Action & Questions
-            </label>
-            <p className="text-xs text-gray-500 mb-2">
-              Any action steps, exercises, or questions the author says to ask yourself?
-            </p>
-            <textarea
-              className="w-full border rounded-lg p-3 h-24"
-              placeholder="Start typing or use voice-to-text..."
-              value={actionInput}
-              onChange={(e) => setActionInput(e.target.value)}
-              spellCheck={true}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+            {(
+              [
+                { field: "remember" as const, label: "What do you remember?", placeholder: "Just a sentence or two...", value: rememberInput, setValue: setRememberInput },
+                { field: "stoodOut" as const, label: "What stood out?", placeholder: "An idea, story, example, quote...", value: stoodOutInput, setValue: setStoodOutInput },
+                { field: "stopThink" as const, label: "Made you stop and think?", placeholder: "Something surprising, challenging...", value: stopThinkInput, setValue: setStopThinkInput },
+                { field: "actionSuggested" as const, label: "Anything to do or try?", placeholder: "A specific action to remember...", value: actionSuggestedInput, setValue: setActionSuggestedInput },
+              ]
+            ).map(({ field, label, placeholder, value, setValue }) => (
+              <div
+                key={field}
+                className={
+                  "border rounded-lg p-3 " +
+                  (activeField === field ? "border-black" : "border-gray-200")
+                }
+              >
+                <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+                <textarea
+                  className="w-full resize-none text-sm outline-none overflow-hidden"
+                  rows={2}
+                  placeholder={placeholder}
+                  value={value}
+                  onFocus={() => setActiveField(field)}
+                  onChange={(e) => {
+                    setValue(e.target.value);
+                    e.target.style.height = "auto";
+                    e.target.style.height = e.target.scrollHeight + "px";
+                  }}
+                  spellCheck={true}
+                />
+              </div>
+            ))}
           </div>
 
-          <p className="text-xs text-gray-400 mb-4">
-            💡 Tip: press <span className="font-medium">Windows key + H</span> to use
-            voice-to-text instead of typing.
-          </p>
+          {!showExtraBox ? (
+            <button
+              type="button"
+              onClick={() => setShowExtraBox(true)}
+              className="text-xs text-gray-500 underline mb-3"
+            >
+              + Anything else?
+            </button>
+          ) : (
+            <div
+              className={
+                "border rounded-lg p-3 mb-3 " +
+                (activeField === "extra" ? "border-black" : "border-gray-200")
+              }
+            >
+              <label className="block text-xs font-semibold text-gray-600 mb-1">Anything else</label>
+              <textarea
+                className="w-full resize-none text-sm outline-none overflow-hidden"
+                rows={2}
+                placeholder="Anything else you don't want to forget..."
+                value={extraInput}
+                onFocus={() => setActiveField("extra")}
+                onChange={(e) => {
+                  setExtraInput(e.target.value);
+                  e.target.style.height = "auto";
+                  e.target.style.height = e.target.scrollHeight + "px";
+                }}
+                spellCheck={true}
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col items-center gap-1 mb-4">
+            {speechSupported ? (
+              <>
+                <button
+                  type="button"
+                  onClick={toggleListening}
+                  className={
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white " +
+                    (isListening ? "bg-red-600" : "bg-black")
+                  }
+                >
+                  {isListening ? "● Listening..." : "🎙️ Speak My Thoughts"}
+                </button>
+                <p className="text-[11px] text-gray-400 text-center">
+                  {isListening
+                    ? "Tap again to stop — adds to what you've already typed."
+                    : "Tap a box, then tap to speak into it."}
+                </p>
+              </>
+            ) : (
+              <p className="text-xs text-gray-400 text-center">
+                Voice input isn't available in this browser — no problem, just type your thoughts below.
+              </p>
+            )}
+          </div>
 
           <p className="font-medium mb-3">How would you like me to polish your journal?</p>
           <div className="flex flex-col gap-3">
@@ -738,8 +920,12 @@ checkAndSendDigest();
             <button
               onClick={() => {
                 setChapterTitle("");
-                setSummaryInput("");
-                setActionInput("");
+                setRememberInput("");
+                setStoodOutInput("");
+                setStopThinkInput("");
+                setActionSuggestedInput("");
+                setExtraInput("");
+                setShowExtraBox(false);
                 setJournal("");
                 setMessages([]);
                 setSummaryData(null);
