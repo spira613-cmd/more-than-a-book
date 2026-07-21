@@ -580,7 +580,7 @@ checkAndSendDigest();
           <label className="block text-sm font-medium mb-1 text-[#5b5541]">Chapter Title</label>
           <input
             className="w-full border border-[#d9d0b8] bg-[#fffdf8] rounded-md p-3 mb-4 text-[#211d15] placeholder-[#a89f88]"
-            placeholder="e.g. Atomic Habits — Chapter 3"
+            placeholder="Name the chapter you read today"
             value={chapterTitle}
             onChange={(e) => setChapterTitle(e.target.value)}
           />
