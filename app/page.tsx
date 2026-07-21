@@ -595,7 +595,7 @@ checkAndSendDigest();
                 { field: "remember" as const, label: "What do you remember?", placeholder: "Just a sentence or two...", value: rememberInput, setValue: setRememberInput },
                 { field: "stoodOut" as const, label: "What stood out?", placeholder: "An idea, story, example, quote...", value: stoodOutInput, setValue: setStoodOutInput },
                 { field: "stopThink" as const, label: "Made you stop and think?", placeholder: "Something surprising, challenging...", value: stopThinkInput, setValue: setStopThinkInput },
-                { field: "actionSuggested" as const, label: "Anything to do or try?", placeholder: "A specific action to remember...", value: actionSuggestedInput, setValue: setActionSuggestedInput },
+                { field: "actionSuggested" as const, label: "Did the author suggest trying anything?", placeholder: "Something specific they said to do or try...", value: actionSuggestedInput, setValue: setActionSuggestedInput },
               ]
             ).map(({ field, label, placeholder, value, setValue }) => (
               <div
