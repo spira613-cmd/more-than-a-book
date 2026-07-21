@@ -574,7 +574,7 @@ checkAndSendDigest();
 
           <label className="block text-sm font-medium mb-1">Chapter Title</label>
           <input
-            className="w-full border rounded-lg p-3 mb-4"
+            className="w-full border rounded-lg p-3 mb-4 text-gray-900"
             placeholder="e.g. Atomic Habits — Chapter 3"
             value={chapterTitle}
             onChange={(e) => setChapterTitle(e.target.value)}
@@ -602,12 +602,12 @@ checkAndSendDigest();
                 key={field}
                 className={
                   "border rounded-lg p-3 " +
-                  (activeField === field ? "border-black" : "border-gray-200")
+                  (activeField === field ? "border-black" : "border-gray-300")
                 }
               >
                 <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
                 <textarea
-                  className="w-full resize-none text-sm outline-none overflow-hidden min-h-28"
+                  className="w-full resize-none text-sm outline-none overflow-hidden min-h-28 text-gray-900"
                   rows={4}
                   placeholder={placeholder}
                   value={value}
@@ -635,12 +635,12 @@ checkAndSendDigest();
             <div
               className={
                 "border rounded-lg p-3 mb-3 " +
-                (activeField === "extra" ? "border-black" : "border-gray-200")
+                (activeField === "extra" ? "border-black" : "border-gray-300")
               }
             >
               <label className="block text-xs font-semibold text-gray-600 mb-1">Anything else</label>
               <textarea
-                className="w-full resize-none text-sm outline-none overflow-hidden"
+                className="w-full resize-none text-sm outline-none overflow-hidden text-gray-900"
                 rows={2}
                 placeholder="Anything else you don't want to forget..."
                 value={extraInput}
@@ -905,24 +905,24 @@ checkAndSendDigest();
             {summaryData && (
               <div className="flex flex-col gap-5 mb-8">
                 <div>
-                  <div className="text-sm font-semibold text-gray-500 mb-1">CHAPTER TAKEAWAY</div>
-                  <p className="text-gray-800">{summaryData.chapterTakeaway}</p>
+                  <div className="text-sm font-semibold text-gray-700 mb-1">CHAPTER TAKEAWAY</div>
+                  <p className="text-gray-900">{summaryData.chapterTakeaway}</p>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-500 mb-1">PERSONAL INSIGHT</div>
-                  <p className="text-gray-800">{summaryData.personalInsight}</p>
+                  <div className="text-sm font-semibold text-gray-700 mb-1">PERSONAL INSIGHT</div>
+                  <p className="text-gray-900">{summaryData.personalInsight}</p>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-500 mb-1">COMMITMENT</div>
-                  <p className="text-gray-800">{summaryData.commitment}</p>
+                  <div className="text-sm font-semibold text-gray-700 mb-1">COMMITMENT</div>
+                  <p className="text-gray-900">{summaryData.commitment}</p>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-500 mb-1">OBSTACLE</div>
-                  <p className="text-gray-800">{summaryData.obstacle}</p>
+                  <div className="text-sm font-semibold text-gray-700 mb-1">OBSTACLE</div>
+                  <p className="text-gray-900">{summaryData.obstacle}</p>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-500 mb-1">STRATEGY</div>
-                  <p className="text-gray-800">{summaryData.strategy}</p>
+                  <div className="text-sm font-semibold text-gray-700 mb-1">STRATEGY</div>
+                  <p className="text-gray-900">{summaryData.strategy}</p>
                 </div>
               </div>
             )}
