@@ -555,36 +555,41 @@ checkAndSendDigest();
   }
 
   if (screen === "form") {
+    const entryNumber = entries.length + 1;
+
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 p-6">
-        <div className="w-full max-w-xl bg-white rounded-2xl shadow p-8">
+      <div className="flex min-h-screen flex-col items-center justify-center bg-[#14181a] p-6">
+        <div className="w-full max-w-xl bg-[#f6f1e8] text-[#211d15] rounded-xl shadow-[0_20px_44px_-18px_rgba(0,0,0,0.6)] p-8">
           <div className="flex justify-end gap-4 mb-2">
-            <a href="/journal" className="text-sm text-gray-500 underline">
+            <a href="/journal" className="text-sm text-[#8f8873] underline">
               View My Journal →
             </a>
-            <a href="/checkin" className="text-sm text-gray-500 underline">
+            <a href="/checkin" className="text-sm text-[#8f8873] underline">
               View My Commitments →
             </a>
           </div>
 
-          <h1 className="text-2xl font-semibold mb-2">Start a New Chapter</h1>
-          <p className="text-gray-500 mb-6">
+          <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#a6824a] mb-1.5">
+            Entry {String(entryNumber).padStart(2, "0")} · Reflection
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight mb-2">Start a New Chapter</h1>
+          <p className="text-[#8f8873] mb-6">
             Enter the book/chapter you just read and a short summary of what stood out to you.
           </p>
 
-          <label className="block text-sm font-medium mb-1">Chapter Title</label>
+          <label className="block text-sm font-medium mb-1 text-[#5b5541]">Chapter Title</label>
           <input
-            className="w-full border rounded-lg p-3 mb-4 text-gray-900"
+            className="w-full border border-[#d9d0b8] bg-[#fffdf8] rounded-md p-3 mb-4 text-[#211d15] placeholder-[#a89f88]"
             placeholder="e.g. Atomic Habits — Chapter 3"
             value={chapterTitle}
             onChange={(e) => setChapterTitle(e.target.value)}
           />
 
           <div className="mb-1">
-            <p className="text-sm font-semibold text-gray-700 mb-0.5">
+            <p className="text-base font-bold tracking-tight mb-0.5">
               Before the chapter fades, capture what you remember.
             </p>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-xs text-[#8f8873] mb-3">
               Answer whatever comes to mind. A sentence is enough.
             </p>
           </div>
@@ -592,7 +597,7 @@ checkAndSendDigest();
           <div className="flex flex-col gap-3 mb-2">
             {(
               [
-                { field: "remember" as const, label: "What do you remember?", placeholder: "Just a sentence or two...", value: rememberInput, setValue: setRememberInput },
+                { field: "remember" as const, label: "What do you remember?", placeholder: "Sum up today's message in your own words.", value: rememberInput, setValue: setRememberInput },
                 { field: "stoodOut" as const, label: "What stood out?", placeholder: "An idea, story, example, quote...", value: stoodOutInput, setValue: setStoodOutInput },
                 { field: "stopThink" as const, label: "Made you stop and think?", placeholder: "Something surprising, challenging...", value: stopThinkInput, setValue: setStopThinkInput },
                 { field: "actionSuggested" as const, label: "Did the author suggest trying anything?", placeholder: "Something specific they said to do or try...", value: actionSuggestedInput, setValue: setActionSuggestedInput },
@@ -601,13 +606,13 @@ checkAndSendDigest();
               <div
                 key={field}
                 className={
-                  "border rounded-lg p-3 " +
-                  (activeField === field ? "border-black" : "border-gray-300")
+                  "border rounded-md p-3 bg-[#fffdf8] " +
+                  (activeField === field ? "border-[#a6824a]" : "border-[#e3dac0]")
                 }
               >
-                <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+                <label className="block text-[10px] font-bold tracking-wide uppercase text-[#8a6a30] mb-1">{label}</label>
                 <textarea
-                  className="w-full resize-none text-sm outline-none overflow-hidden min-h-28 text-gray-900"
+                  className="w-full resize-none text-sm outline-none overflow-hidden min-h-28 text-[#211d15] placeholder-[#a89f88]"
                   rows={4}
                   placeholder={placeholder}
                   value={value}
@@ -627,20 +632,20 @@ checkAndSendDigest();
             <button
               type="button"
               onClick={() => setShowExtraBox(true)}
-              className="text-xs text-gray-500 underline mb-3"
+              className="text-xs text-[#8f8873] underline mb-3"
             >
               + Anything else?
             </button>
           ) : (
             <div
               className={
-                "border rounded-lg p-3 mb-3 " +
-                (activeField === "extra" ? "border-black" : "border-gray-300")
+                "border rounded-md p-3 mb-3 bg-[#fffdf8] " +
+                (activeField === "extra" ? "border-[#a6824a]" : "border-[#e3dac0]")
               }
             >
-              <label className="block text-xs font-semibold text-gray-600 mb-1">Anything else</label>
+              <label className="block text-[10px] font-bold tracking-wide uppercase text-[#8a6a30] mb-1">Anything else</label>
               <textarea
-                className="w-full resize-none text-sm outline-none overflow-hidden text-gray-900"
+                className="w-full resize-none text-sm outline-none overflow-hidden text-[#211d15] placeholder-[#a89f88]"
                 rows={2}
                 placeholder="Anything else you don't want to forget..."
                 value={extraInput}
@@ -662,47 +667,49 @@ checkAndSendDigest();
                   type="button"
                   onClick={toggleListening}
                   className={
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium text-white " +
-                    (isListening ? "bg-red-600" : "bg-black")
+                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border " +
+                    (isListening
+                      ? "bg-[#7a3b2e] text-[#f6f1e8] border-[#7a3b2e]"
+                      : "bg-[#211d15] text-[#e9d9ae] border-[#3a3324]")
                   }
                 >
                   {isListening ? "● Listening..." : "🎙️ Speak My Thoughts"}
                 </button>
-                <p className="text-[11px] text-gray-400 text-center">
+                <p className="text-[11px] text-[#8f8873] text-center">
                   {isListening
                     ? "Tap again to stop — adds to what you've already typed."
                     : "Tap a box, then tap to speak into it."}
                 </p>
               </>
             ) : (
-              <p className="text-xs text-gray-400 text-center">
+              <p className="text-xs text-[#8f8873] text-center">
                 Voice input isn't available in this browser — no problem, just type your thoughts below.
               </p>
             )}
           </div>
 
-          <p className="font-medium mb-3">How would you like me to polish your journal?</p>
+          <p className="font-bold mb-3">How would you like me to polish your journal?</p>
           <div className="flex flex-col gap-3">
             <button
               onClick={() => generateJournal("keep")}
-              className="w-full border rounded-lg py-3 font-medium text-left px-4"
+              className="w-full border border-[#e3dac0] bg-[#fffdf8] rounded-md py-3 font-medium text-left px-4"
             >
               <div className="font-semibold">Keep It Yours</div>
-              <div className="text-sm text-gray-500">Just proofread grammar and formatting.</div>
+              <div className="text-sm text-[#8f8873]">Just proofread grammar and formatting.</div>
             </button>
             <button
               onClick={() => generateJournal("flow")}
-              className="w-full border rounded-lg py-3 font-medium text-left px-4"
+              className="w-full border border-[#e3dac0] bg-[#fffdf8] rounded-md py-3 font-medium text-left px-4"
             >
               <div className="font-semibold">Make It Flow</div>
-              <div className="text-sm text-gray-500">Rewrite for smoother readability.</div>
+              <div className="text-sm text-[#8f8873]">Rewrite for smoother readability.</div>
             </button>
             <button
               onClick={() => generateJournal("expand")}
-              className="w-full bg-black text-white rounded-lg py-3 font-medium text-left px-4"
+              className="w-full bg-[#211d15] text-[#e9d9ae] border border-[#211d15] rounded-md py-3 font-medium text-left px-4"
             >
               <div className="font-semibold">Add Context</div>
-              <div className="text-sm text-gray-200">Includes related ideas from this book or author.</div>
+              <div className="text-sm text-[#b9ab84]">Includes related ideas from this book or author.</div>
             </button>
           </div>
         </div>
