@@ -95,6 +95,7 @@ export default function Home() {
   const [speechSupported, setSpeechSupported] = useState(true);
   const recognitionRef = useRef<any>(null);
   const activeFieldRef = useRef<ReflectionField>("remember");
+  const sessionBaseRef = useRef<string>("");
   const [screen, setScreen] = useState<Screen>("spiral");
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
@@ -199,15 +200,26 @@ export default function Home() {
     return parts.join("\n\n");
   }
 
-  function appendToField(field: ReflectionField, text: string) {
-    const setters: Record<ReflectionField, (updater: (prev: string) => string) => void> = {
+  function getFieldSetter(field: ReflectionField): (value: string) => void {
+    const setters: Record<ReflectionField, (value: string) => void> = {
       remember: setRememberInput,
       stoodOut: setStoodOutInput,
       stopThink: setStopThinkInput,
       actionSuggested: setActionSuggestedInput,
       extra: setExtraInput,
     };
-    setters[field]((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+    return setters[field];
+  }
+
+  function getFieldValue(field: ReflectionField): string {
+    const values: Record<ReflectionField, string> = {
+      remember: rememberInput,
+      stoodOut: stoodOutInput,
+      stopThink: stopThinkInput,
+      actionSuggested: actionSuggestedInput,
+      extra: extraInput,
+    };
+    return values[field];
   }
 
   function toggleListening() {
@@ -225,19 +237,23 @@ export default function Home() {
 
     activeFieldRef.current = activeField;
     if (activeField === "extra") setShowExtraBox(true);
+    sessionBaseRef.current = getFieldValue(activeField).trim();
 
     const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
 
     recognition.onresult = (event: any) => {
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          appendToField(activeFieldRef.current, result[0].transcript.trim());
-        }
+      let transcript = "";
+      for (let i = 0; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
       }
+      transcript = transcript.replace(/\s+/g, " ").trim();
+
+      const base = sessionBaseRef.current;
+      const combined = base ? (transcript ? `${base} ${transcript}` : base) : transcript;
+      getFieldSetter(activeFieldRef.current)(combined);
     };
     recognition.onerror = () => {
       setIsListening(false);
@@ -573,7 +589,7 @@ checkAndSendDigest();
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+          <div className="flex flex-col gap-3 mb-2">
             {(
               [
                 { field: "remember" as const, label: "What do you remember?", placeholder: "Just a sentence or two...", value: rememberInput, setValue: setRememberInput },
@@ -591,8 +607,8 @@ checkAndSendDigest();
               >
                 <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
                 <textarea
-                  className="w-full resize-none text-sm outline-none overflow-hidden"
-                  rows={2}
+                  className="w-full resize-none text-sm outline-none overflow-hidden min-h-28"
+                  rows={4}
                   placeholder={placeholder}
                   value={value}
                   onFocus={() => setActiveField(field)}
