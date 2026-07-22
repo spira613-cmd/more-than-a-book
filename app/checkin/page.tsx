@@ -114,6 +114,11 @@ export default function CheckIn() {
     }
   }
 
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   async function deleteChapter(id: number) {
     if (!window.confirm("Delete this entry? This can't be undone.")) return;
 
@@ -144,9 +149,14 @@ export default function CheckIn() {
           <a href="/" className="text-sm text-gray-500 underline">
             ← Your journey
           </a>
-          <div className="bg-white border rounded-full px-4 py-1.5 flex items-center gap-2">
-            <span className="text-amber-400">⭐</span>
-            <span className="text-sm font-medium">{totalStars} actualizations</span>
+          <div className="flex items-center gap-4">
+            <div className="bg-white border rounded-full px-4 py-1.5 flex items-center gap-2">
+              <span className="text-amber-400">⭐</span>
+              <span className="text-sm font-medium">{totalStars} actualizations</span>
+            </div>
+            <button onClick={signOut} className="text-sm text-gray-500 underline">
+              Sign Out
+            </button>
           </div>
         </div>
 

@@ -65,6 +65,11 @@ export default function Home() {
     setEntriesLoading(false);
   }
 
+  async function signOut() {
+    await supabase.auth.signOut();
+    window.location.href = "/login";
+  }
+
   const [chapterTitle, setChapterTitle] = useState(() => {
     if (typeof window === "undefined") return "";
     return localStorage.getItem("draft_chapterTitle") || "";
@@ -489,6 +494,9 @@ checkAndSendDigest();
             <a href="/checkin" className="text-sm text-gray-500 underline">
               View My Commitments →
             </a>
+            <button onClick={signOut} className="text-sm text-gray-500 underline">
+              Sign Out
+            </button>
           </div>
 
           <p className="text-center text-xs uppercase tracking-wide text-gray-400 mb-1">
@@ -589,6 +597,9 @@ checkAndSendDigest();
             <a href="/checkin" className="text-sm text-[#8f8873] underline">
               View My Commitments →
             </a>
+            <button onClick={signOut} className="text-sm text-[#8f8873] underline">
+              Sign Out
+            </button>
           </div>
 
           <p className="text-[10px] font-bold tracking-[0.14em] uppercase text-[#a6824a] mb-1.5">
