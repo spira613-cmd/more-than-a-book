@@ -39,7 +39,7 @@ export default function CheckIn() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    setChapters(data || []);
+    setChapters((data || []).filter((c) => c.commitment));
     setLoading(false);
   }
 
