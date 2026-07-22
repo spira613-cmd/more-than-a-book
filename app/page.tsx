@@ -196,6 +196,9 @@ export default function Home() {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [lockInStatement, setLockInStatement] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [wrapUpChapterId, setWrapUpChapterId] = useState<number | null>(null);
+  const [wrapUpDuration, setWrapUpDuration] = useState(5);
+  const [wrapUpCustomDuration, setWrapUpCustomDuration] = useState(false);
 
   function buildChapterSummary() {
     const parts = [
@@ -394,21 +397,33 @@ async function checkAndSendDigest() {
     setSummaryLoading(false);
 
     if (data.summary) {
-      await supabase.from("chapters").insert({
-        user_id: userId,
-        chapter_title: chapterTitle,
-        chapter_summary: buildChapterSummary(),
-        journal: journal,
-        conversation: messages,
-        chapter_takeaway: data.summary.chapterTakeaway,
-        personal_insight: data.summary.personalInsight,
-        commitment: data.summary.commitment,
-        obstacle: data.summary.obstacle,
-        strategy: data.summary.strategy,
-       lock_in_statement: data.lockInStatement,
-      });
+      const { data: inserted } = await supabase
+        .from("chapters")
+        .insert({
+          user_id: userId,
+          chapter_title: chapterTitle,
+          chapter_summary: buildChapterSummary(),
+          journal: journal,
+          conversation: messages,
+          chapter_takeaway: data.summary.chapterTakeaway,
+          personal_insight: data.summary.personalInsight,
+          commitment: data.summary.commitment,
+          obstacle: data.summary.obstacle,
+          strategy: data.summary.strategy,
+         lock_in_statement: data.lockInStatement,
+        })
+        .select("id")
+        .single();
+
+      setWrapUpChapterId(inserted?.id ?? null);
       checkAndSendDigest();
     }
+  }
+
+  async function saveWrapUpDuration(days: number) {
+    setWrapUpDuration(days);
+    if (!wrapUpChapterId) return;
+    await supabase.from("chapters").update({ duration_days: days }).eq("id", wrapUpChapterId);
   }
     
   
@@ -1027,6 +1042,66 @@ checkAndSendDigest();
               </div>
             )}
 
+            {summaryData?.commitment && (
+              <div className="mb-8">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  How many days do you want to commit to this?
+                </p>
+                <div className="flex flex-wrap gap-2 mb-1">
+                  {[3, 7, 14, 21].map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => {
+                        setWrapUpCustomDuration(false);
+                        saveWrapUpDuration(days);
+                      }}
+                      className={
+                        "rounded-full px-4 py-1.5 text-sm font-medium border " +
+                        (!wrapUpCustomDuration && wrapUpDuration === days
+                          ? "bg-black text-white border-black"
+                          : "bg-white text-gray-600 border-gray-300")
+                      }
+                    >
+                      {days} days
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setWrapUpCustomDuration(true)}
+                    className={
+                      "flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium border " +
+                      (wrapUpCustomDuration
+                        ? "bg-black text-white border-black"
+                        : "bg-white text-gray-600 border-gray-300")
+                    }
+                  >
+                    Custom:
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={wrapUpDuration}
+                      onFocus={() => setWrapUpCustomDuration(true)}
+                      onChange={(e) => {
+                        setWrapUpCustomDuration(true);
+                        const parsed = parseInt(e.target.value, 10);
+                        saveWrapUpDuration(Number.isNaN(parsed) ? 1 : Math.min(365, Math.max(1, parsed)));
+                      }}
+                      className={
+                        "w-10 rounded bg-transparent text-center outline-none " +
+                        (wrapUpCustomDuration ? "text-white" : "text-gray-900")
+                      }
+                    />
+                    days
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400">
+                  You'll check in and mark it done once a day, up to this many days.
+                </p>
+              </div>
+            )}
+
             {lockInStatement && (
               <div className="bg-gray-900 text-white rounded-xl p-6 italic leading-relaxed">
                 {lockInStatement}
@@ -1046,6 +1121,9 @@ checkAndSendDigest();
                 setMessages([]);
                 setSummaryData(null);
                 setLockInStatement("");
+                setWrapUpChapterId(null);
+                setWrapUpDuration(5);
+                setWrapUpCustomDuration(false);
                 setScreen("spiral");
               }}
               className="w-full mt-6 border rounded-lg py-3 font-medium"
