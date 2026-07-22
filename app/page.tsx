@@ -233,7 +233,7 @@ export default function Home() {
     return values[field];
   }
 
-  function toggleListening() {
+  function toggleListeningForField(field: ReflectionField) {
     if (isListening) {
       recognitionRef.current?.stop();
       return;
@@ -246,9 +246,10 @@ export default function Home() {
       return;
     }
 
-    activeFieldRef.current = activeField;
-    if (activeField === "extra") setShowExtraBox(true);
-    sessionBaseRef.current = getFieldValue(activeField).trim();
+    setActiveField(field);
+    activeFieldRef.current = field;
+    if (field === "extra") setShowExtraBox(true);
+    sessionBaseRef.current = getFieldValue(field).trim();
 
     const recognition = new SpeechRecognitionCtor();
     recognition.continuous = true;
@@ -642,6 +643,7 @@ checkAndSendDigest();
             </p>
             <p className="text-xs text-[#8f8873] mb-3">
               Answer whatever comes to mind. A sentence is enough.
+              {!speechSupported && " Voice input isn't available in this browser — no problem, just type."}
             </p>
           </div>
 
@@ -661,7 +663,27 @@ checkAndSendDigest();
                   (activeField === field ? "border-[#a6824a]" : "border-[#e3dac0]")
                 }
               >
-                <label className="block text-[10px] font-bold tracking-wide uppercase text-[#8a6a30] mb-1">{label}</label>
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <label className="text-[10px] font-bold tracking-wide uppercase text-[#8a6a30]">{label}</label>
+                  {speechSupported && (
+                    <button
+                      type="button"
+                      onClick={() => toggleListeningForField(field)}
+                      aria-label={isListening && activeField === field ? "Stop voice input" : "Speak into this box"}
+                      className={
+                        "relative flex-none w-6 h-6 rounded-full flex items-center justify-center text-[11px] border " +
+                        (isListening && activeField === field
+                          ? "bg-[#7a3b2e] text-[#f6f1e8] border-[#7a3b2e]"
+                          : "bg-[#211d15] text-[#e9d9ae] border-[#3a3324]")
+                      }
+                    >
+                      {isListening && activeField === field && (
+                        <span className="absolute inset-0 rounded-full border border-[#7a3b2e] animate-ping" />
+                      )}
+                      {isListening && activeField === field ? "●" : "🎙️"}
+                    </button>
+                  )}
+                </div>
                 <textarea
                   className="w-full resize-none text-sm outline-none overflow-hidden min-h-28 text-[#211d15] placeholder-[#a89f88]"
                   rows={4}
@@ -694,7 +716,27 @@ checkAndSendDigest();
                 (activeField === "extra" ? "border-[#a6824a]" : "border-[#e3dac0]")
               }
             >
-              <label className="block text-[10px] font-bold tracking-wide uppercase text-[#8a6a30] mb-1">Anything else</label>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <label className="text-[10px] font-bold tracking-wide uppercase text-[#8a6a30]">Anything else</label>
+                {speechSupported && (
+                  <button
+                    type="button"
+                    onClick={() => toggleListeningForField("extra")}
+                    aria-label={isListening && activeField === "extra" ? "Stop voice input" : "Speak into this box"}
+                    className={
+                      "relative flex-none w-6 h-6 rounded-full flex items-center justify-center text-[11px] border " +
+                      (isListening && activeField === "extra"
+                        ? "bg-[#7a3b2e] text-[#f6f1e8] border-[#7a3b2e]"
+                        : "bg-[#211d15] text-[#e9d9ae] border-[#3a3324]")
+                    }
+                  >
+                    {isListening && activeField === "extra" && (
+                      <span className="absolute inset-0 rounded-full border border-[#7a3b2e] animate-ping" />
+                    )}
+                    {isListening && activeField === "extra" ? "●" : "🎙️"}
+                  </button>
+                )}
+              </div>
               <textarea
                 className="w-full resize-none text-sm outline-none overflow-hidden text-[#211d15] placeholder-[#a89f88]"
                 rows={2}
@@ -710,34 +752,6 @@ checkAndSendDigest();
               />
             </div>
           )}
-
-          <div className="flex flex-col items-center gap-1 mb-4">
-            {speechSupported ? (
-              <>
-                <button
-                  type="button"
-                  onClick={toggleListening}
-                  className={
-                    "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border " +
-                    (isListening
-                      ? "bg-[#7a3b2e] text-[#f6f1e8] border-[#7a3b2e]"
-                      : "bg-[#211d15] text-[#e9d9ae] border-[#3a3324]")
-                  }
-                >
-                  {isListening ? "● Listening..." : "🎙️ Speak My Thoughts"}
-                </button>
-                <p className="text-[11px] text-[#8f8873] text-center">
-                  {isListening
-                    ? "Tap again to stop — adds to what you've already typed."
-                    : "Tap a box, then tap to speak into it."}
-                </p>
-              </>
-            ) : (
-              <p className="text-xs text-[#8f8873] text-center">
-                Voice input isn't available in this browser — no problem, just type your thoughts below.
-              </p>
-            )}
-          </div>
 
           <p className="font-bold mb-3">How would you like me to polish your journal?</p>
           <div className="flex flex-col gap-3">
