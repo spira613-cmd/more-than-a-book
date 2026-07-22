@@ -101,6 +101,7 @@ export default function Home() {
   const [journalLoading, setJournalLoading] = useState(false);
   const [selfCommitment, setSelfCommitment] = useState("");
   const [selfSaving, setSelfSaving] = useState(false);
+  const [doneSaving, setDoneSaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -436,6 +437,27 @@ async function checkAndSendDigest() {
 checkAndSendDigest();
     setSelfSaving(false);
     window.location.href = "/checkin";
+  }
+
+  async function saveJournalOnly() {
+    setDoneSaving(true);
+
+    await supabase.from("chapters").insert({
+      user_id: userId,
+      chapter_title: chapterTitle,
+      chapter_summary: buildChapterSummary(),
+      journal: journal,
+      conversation: [],
+      chapter_takeaway: "",
+      personal_insight: "",
+      commitment: "",
+      obstacle: "",
+      strategy: "",
+      lock_in_statement: "",
+    });
+    checkAndSendDigest();
+    setDoneSaving(false);
+    window.location.href = "/journal";
   }
 
   if (!authChecked || entriesLoading) {
@@ -805,12 +827,13 @@ checkAndSendDigest();
                 >
                   ✅ I already have one in mind
                 </button>
-                <a
-                  href="/journal"
-                  className="w-full text-center border rounded-lg py-3 font-medium text-gray-600"
+                <button
+                  onClick={saveJournalOnly}
+                  disabled={doneSaving}
+                  className="w-full text-center border rounded-lg py-3 font-medium text-gray-600 disabled:opacity-40"
                 >
-                  ✔️ Done for today
-                </a>
+                  {doneSaving ? "Saving..." : "✔️ Done for today"}
+                </button>
               </div>
             </>
           )}
