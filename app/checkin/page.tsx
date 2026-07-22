@@ -123,10 +123,17 @@ export default function CheckIn() {
   async function deleteChapter(id: number) {
     if (!window.confirm("Delete this entry? This can't be undone.")) return;
 
-    const { error } = await supabase.from("chapters").delete().eq("id", id);
+    const { data, error } = await supabase.from("chapters").delete().eq("id", id).select();
 
     if (error) {
       alert("Couldn't delete this entry: " + error.message);
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      alert(
+        "This entry wasn't actually deleted. Your Supabase database is likely missing a DELETE policy for the chapters table (Row Level Security) — add one, then try again."
+      );
       return;
     }
 
