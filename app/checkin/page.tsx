@@ -226,6 +226,11 @@ export default function CheckIn() {
                       disabled={stars >= duration}
                       className="w-full mb-2 disabled:cursor-default"
                     >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-semibold text-gray-900">
+                          Day {stars} of {duration}
+                        </span>
+                      </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gray-900 rounded-full"
