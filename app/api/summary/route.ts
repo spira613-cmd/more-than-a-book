@@ -15,9 +15,9 @@ Based on the chapter summary and the full coaching conversation, produce TWO thi
 1. An "IMPLEMENTATION SUMMARY" containing these sections, each with a short heading:
 - Chapter Takeaway (1-2 sentences)
 - Personal Insight (what specifically resonated with this user)
-- Commitment (the single most concrete action they landed on — be specific, not vague)
-- Obstacle (the main obstacle they identified)
-- Strategy (how they plan to handle that obstacle)
+- Commitment (the single most concrete action they landed on — be specific, not vague. If the user never actually stated a concrete action they're committing to, set this to an empty string "". Never invent a commitment, and never restate the chapter title or chapter summary as if it were one.)
+- Obstacle (the main obstacle they identified — set to an empty string "" if there is no commitment, or none was discussed)
+- Strategy (how they plan to handle that obstacle — set to an empty string "" if there is no commitment, or none was discussed)
 
 2. A "LOCK-IN STATEMENT" — a short, first-person paragraph (3-5 sentences) written as if the user is speaking. It should reinforce their identity and today's decision, using language and specifics from what THEY actually said in the conversation — not generic motivational language. Do not invent commitments they didn't actually make.
 
