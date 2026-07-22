@@ -39,7 +39,7 @@ export default function CheckIn() {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    setChapters(data || []);
+    setChapters((data || []).filter((c) => c.commitment));
     setLoading(false);
   }
 
@@ -114,6 +114,19 @@ export default function CheckIn() {
     }
   }
 
+  async function deleteChapter(id: number) {
+    if (!window.confirm("Delete this entry? This can't be undone.")) return;
+
+    const { error } = await supabase.from("chapters").delete().eq("id", id);
+
+    if (error) {
+      alert("Couldn't delete this entry: " + error.message);
+      return;
+    }
+
+    setChapters((prev) => prev.filter((c) => c.id !== id));
+  }
+
   const totalStars = chapters.reduce((sum, c) => sum + (c.stars || 0), 0);
 
   if (!authChecked) {
@@ -159,8 +172,16 @@ export default function CheckIn() {
           <div className="flex flex-col gap-4">
             {chapters.map((c) => (
               <div key={c.id} className="bg-white rounded-xl shadow p-5">
-                <div className="text-sm text-gray-400 mb-1">
-                  {new Date(c.created_at).toLocaleDateString()}
+                <div className="flex items-center justify-between mb-1">
+                  <div className="text-sm text-gray-400">
+                    {new Date(c.created_at).toLocaleDateString()}
+                  </div>
+                  <button
+                    onClick={() => deleteChapter(c.id)}
+                    className="text-xs text-gray-400 hover:text-red-500 underline"
+                  >
+                    Delete
+                  </button>
                 </div>
                 <div className="font-semibold mb-2">{c.chapter_title || "Untitled Chapter"}</div>
                 <div className="text-gray-700 mb-4">{c.commitment}</div>
