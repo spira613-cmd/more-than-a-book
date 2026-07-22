@@ -105,6 +105,8 @@ export default function Home() {
   const [journal, setJournal] = useState("");
   const [journalLoading, setJournalLoading] = useState(false);
   const [selfCommitment, setSelfCommitment] = useState("");
+  const [commitmentDuration, setCommitmentDuration] = useState(5);
+  const [customDuration, setCustomDuration] = useState(false);
   const [selfSaving, setSelfSaving] = useState(false);
   const [doneSaving, setDoneSaving] = useState(false);
 
@@ -438,6 +440,7 @@ async function checkAndSendDigest() {
       obstacle: "",
       strategy: "",
       lock_in_statement: data.lockInStatement,
+      duration_days: commitmentDuration,
     });
 checkAndSendDigest();
     setSelfSaving(false);
@@ -868,6 +871,62 @@ checkAndSendDigest();
             value={selfCommitment}
             onChange={(e) => setSelfCommitment(e.target.value)}
           />
+
+          <p className="text-sm font-medium text-gray-700 mb-2">
+            How many days do you want to commit to this?
+          </p>
+          <div className="flex flex-wrap gap-2 mb-1">
+            {[3, 7, 14, 21].map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => {
+                  setCommitmentDuration(days);
+                  setCustomDuration(false);
+                }}
+                className={
+                  "rounded-full px-4 py-1.5 text-sm font-medium border " +
+                  (!customDuration && commitmentDuration === days
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-gray-600 border-gray-300")
+                }
+              >
+                {days} days
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setCustomDuration(true)}
+              className={
+                "flex items-center gap-1 rounded-full px-4 py-1.5 text-sm font-medium border " +
+                (customDuration
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-gray-600 border-gray-300")
+              }
+            >
+              Custom:
+              <input
+                type="number"
+                min={1}
+                max={365}
+                value={commitmentDuration}
+                onFocus={() => setCustomDuration(true)}
+                onChange={(e) => {
+                  setCustomDuration(true);
+                  const parsed = parseInt(e.target.value, 10);
+                  setCommitmentDuration(Number.isNaN(parsed) ? 1 : Math.min(365, Math.max(1, parsed)));
+                }}
+                className={
+                  "w-10 rounded bg-transparent text-center outline-none " +
+                  (customDuration ? "text-white" : "text-gray-900")
+                }
+              />
+              days
+            </button>
+          </div>
+          <p className="text-xs text-gray-400 mb-6">
+            You'll check in and mark it done once a day, up to this many days.
+          </p>
 
           <button
             onClick={saveSelfDeclared}

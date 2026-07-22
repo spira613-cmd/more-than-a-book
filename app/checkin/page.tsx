@@ -12,6 +12,7 @@ type Chapter = {
   created_at: string;
   lock_in_statement: string;
   stars: number;
+  duration_days: number;
 };
 
 export default function CheckIn() {
@@ -35,7 +36,7 @@ export default function CheckIn() {
     setLoading(true);
     const { data } = await supabase
       .from("chapters")
-      .select("id, chapter_title, commitment, commitment_done, created_at, lock_in_statement, stars")
+      .select("id, chapter_title, commitment, commitment_done, created_at, lock_in_statement, stars, duration_days")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
@@ -91,10 +92,10 @@ export default function CheckIn() {
     }
   }
 
-  async function addStar(id: number, currentStars: number) {
-    if (currentStars >= 5) return;
+  async function addStar(id: number, currentStars: number, durationDays: number) {
+    if (currentStars >= durationDays) return;
     const newStars = currentStars + 1;
-    const isNowDone = newStars >= 5;
+    const isNowDone = newStars >= durationDays;
 
     await supabase
       .from("chapters")
@@ -202,24 +203,44 @@ export default function CheckIn() {
                   </div>
                 )}
 
-                <div className="flex gap-2 mb-2">
-                  {[0, 1, 2, 3, 4].map((i) => (
+                {(() => {
+                  const duration = c.duration_days || 5;
+                  const stars = c.stars || 0;
+
+                  return duration <= 7 ? (
+                    <div className="flex gap-2 mb-2">
+                      {Array.from({ length: duration }, (_, i) => i).map((i) => (
+                        <button
+                          key={i}
+                          onClick={() => addStar(c.id, stars, duration)}
+                          disabled={stars >= duration}
+                          className="text-3xl leading-none disabled:cursor-default"
+                        >
+                          {i < stars ? "⭐" : "☆"}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
                     <button
-                      key={i}
-                      onClick={() => addStar(c.id, c.stars || 0)}
-                      disabled={(c.stars || 0) >= 5}
-                      className="text-3xl leading-none disabled:cursor-default"
+                      onClick={() => addStar(c.id, stars, duration)}
+                      disabled={stars >= duration}
+                      className="w-full mb-2 disabled:cursor-default"
                     >
-                      {i < (c.stars || 0) ? "⭐" : "☆"}
+                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gray-900 rounded-full"
+                          style={{ width: `${Math.min(100, (stars / duration) * 100)}%` }}
+                        />
+                      </div>
                     </button>
-                  ))}
-                </div>
+                  );
+                })()}
 
                 {c.commitment_done ? (
                   <p className="text-sm font-medium text-green-600">Complete! This one's done.</p>
                 ) : (
                   <p className="text-sm text-gray-500">
-                    {c.stars || 0} of 5 — tap a star each time you follow through
+                    {c.stars || 0} of {c.duration_days || 5} — tap {(c.duration_days || 5) <= 7 ? "a star" : "to check in"} each time you follow through
                   </p>
                 )}
               </div>
