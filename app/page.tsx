@@ -550,15 +550,24 @@ export default function Home() {
     setLoading(false);
   }
 async function checkAndSendDigest() {
-    if (!userId || !userEmail) return;
+    if (!userId || !userEmail) {
+      console.log("[digest] skipped — missing userId/userEmail", { userId, userEmail });
+      return;
+    }
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData.user?.user_metadata?.day5_digest_sent) return;
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr) console.log("[digest] getUser error", userErr);
+    console.log("[digest] user_metadata", userData.user?.user_metadata);
+    if (userData.user?.user_metadata?.day5_digest_sent) {
+      console.log("[digest] skipped — day5_digest_sent already true");
+      return;
+    }
 
-    const { count } = await supabase
+    const { count, error: countErr } = await supabase
       .from("chapters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
+    console.log("[digest] count", count, countErr);
 
     if (count !== null && count >= 5) {
       try {
@@ -567,27 +576,40 @@ async function checkAndSendDigest() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, userEmail }),
         });
+        console.log("[digest] fetch responded", res.status);
         if (res.ok) {
           await supabase.auth.updateUser({ data: { day5_digest_sent: true } });
+          console.log("[digest] sent, flag set");
         } else {
           console.error("Digest send failed:", await res.text());
         }
       } catch (err) {
         console.error("Digest trigger failed:", err);
       }
+    } else {
+      console.log("[digest] threshold not met yet", count);
     }
   }
 
   async function checkAndSendTenDayReview() {
-    if (!userId || !userEmail) return;
+    if (!userId || !userEmail) {
+      console.log("[tenDayReview] skipped — missing userId/userEmail", { userId, userEmail });
+      return;
+    }
 
-    const { data: userData } = await supabase.auth.getUser();
-    if (userData.user?.user_metadata?.day10_review_sent) return;
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr) console.log("[tenDayReview] getUser error", userErr);
+    console.log("[tenDayReview] user_metadata", userData.user?.user_metadata);
+    if (userData.user?.user_metadata?.day10_review_sent) {
+      console.log("[tenDayReview] skipped — day10_review_sent already true");
+      return;
+    }
 
-    const { count } = await supabase
+    const { count, error: countErr } = await supabase
       .from("chapters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
+    console.log("[tenDayReview] count", count, countErr);
 
     if (count !== null && count >= 10) {
       try {
@@ -596,14 +618,18 @@ async function checkAndSendDigest() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ userId, userEmail }),
         });
+        console.log("[tenDayReview] fetch responded", res.status);
         if (res.ok) {
           await supabase.auth.updateUser({ data: { day10_review_sent: true } });
+          console.log("[tenDayReview] sent, flag set");
         } else {
           console.error("Ten-day review send failed:", await res.text());
         }
       } catch (err) {
         console.error("Ten-day review trigger failed:", err);
       }
+    } else {
+      console.log("[tenDayReview] threshold not met yet", count);
     }
   }
 
