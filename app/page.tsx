@@ -551,12 +551,17 @@ export default function Home() {
   }
 async function checkAndSendDigest() {
     if (!userId || !userEmail) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user?.user_metadata?.day5_digest_sent) return;
+
     const { count } = await supabase
       .from("chapters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
 
-    if (count === 5) {
+    if (count !== null && count >= 5) {
+      await supabase.auth.updateUser({ data: { day5_digest_sent: true } });
       fetch("/api/digest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -567,12 +572,17 @@ async function checkAndSendDigest() {
 
   async function checkAndSendTenDayReview() {
     if (!userId || !userEmail) return;
+
+    const { data: userData } = await supabase.auth.getUser();
+    if (userData.user?.user_metadata?.day10_review_sent) return;
+
     const { count } = await supabase
       .from("chapters")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId);
 
-    if (count === 10) {
+    if (count !== null && count >= 10) {
+      await supabase.auth.updateUser({ data: { day10_review_sent: true } });
       fetch("/api/tenDayReview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -685,6 +695,7 @@ checkAndSendDigest();
       lock_in_statement: "",
     });
     checkAndSendDigest();
+    checkAndSendTenDayReview();
     setDoneSaving(false);
     window.location.href = "/journal";
   }
