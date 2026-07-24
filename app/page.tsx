@@ -646,8 +646,8 @@ async function checkAndSendDigest() {
         .single();
 
       setWrapUpChapterId(inserted?.id ?? null);
-      checkAndSendDigest();
-      checkAndSendTenDayReview();
+      await checkAndSendDigest();
+      await checkAndSendTenDayReview();
     }
   }
 
@@ -688,8 +688,8 @@ async function checkAndSendDigest() {
       lock_in_statement: data.lockInStatement,
       duration_days: commitmentDuration,
     });
-checkAndSendDigest();
-    checkAndSendTenDayReview();
+    await checkAndSendDigest();
+    await checkAndSendTenDayReview();
     setSelfSaving(false);
     window.location.href = "/checkin";
   }
@@ -710,8 +710,8 @@ checkAndSendDigest();
       strategy: "",
       lock_in_statement: "",
     });
-    checkAndSendDigest();
-    checkAndSendTenDayReview();
+    await checkAndSendDigest();
+    await checkAndSendTenDayReview();
     setDoneSaving(false);
     window.location.href = "/journal";
   }
