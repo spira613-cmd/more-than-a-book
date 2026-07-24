@@ -515,6 +515,23 @@ async function checkAndSendDigest() {
       }).catch((err) => console.error("Digest trigger failed:", err));
     }
   }
+
+  async function checkAndSendTenDayReview() {
+    if (!userId || !userEmail) return;
+    const { count } = await supabase
+      .from("chapters")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+
+    if (count === 10) {
+      fetch("/api/tenDayReview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, userEmail }),
+      }).catch((err) => console.error("Ten-day review trigger failed:", err));
+    }
+  }
+
   async function wrapUp() {
     setSummaryLoading(true);
     setScreen("summary");
@@ -555,6 +572,7 @@ async function checkAndSendDigest() {
 
       setWrapUpChapterId(inserted?.id ?? null);
       checkAndSendDigest();
+      checkAndSendTenDayReview();
     }
   }
 
@@ -596,6 +614,7 @@ async function checkAndSendDigest() {
       duration_days: commitmentDuration,
     });
 checkAndSendDigest();
+    checkAndSendTenDayReview();
     setSelfSaving(false);
     window.location.href = "/checkin";
   }
