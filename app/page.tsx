@@ -24,7 +24,136 @@ type ChapterEntry = {
   created_at: string;
 };
 
-type Screen = "spiral" | "form" | "journalChoice" | "journalDisplay" | "coaching" | "summary" | "selfDeclared";
+type Screen =
+  | "welcome"
+  | "spiral"
+  | "form"
+  | "journalChoice"
+  | "journalDisplay"
+  | "coaching"
+  | "summary"
+  | "selfDeclared";
+
+function LineChartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4">
+      <path
+        d="M4 16l4.5-5 3.5 3 5-6.5 3 3"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="20" cy="10.5" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+function FeatherBookIcon() {
+  return (
+    <svg viewBox="0 0 40 40" fill="none" className="w-9 h-9">
+      <path
+        d="M6 28V13c4-2 10-2 14 1M34 28V13c-4-2-10-2-14 1M20 14v16"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M27 6c-3 1-5 4-5 8 4-1 6-4 5-8z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path d="M23.5 13.5L27 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function BookOutlineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+      <path
+        d="M12 6.5c-2-1.3-5-1.5-8-.7v12c3-.8 6-.6 8 .7 2-1.3 5-1.5 8-.7v-12c-3-.8-6-.6-8 .7z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M12 6.5v12" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function HeartOutlineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+      <path
+        d="M12 20s-7-4.3-9.5-8.8C.8 7.8 2.6 4.5 6 4.2c2-.2 3.7.9 6 3 2.3-2.1 4-3.2 6-3 3.4.3 5.2 3.6 3.5 7-2.5 4.5-9.5 8.8-9.5 8.8z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SproutOutlineIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+      <path d="M12 21V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M12 12c0-4 3-6 7-6 0 4-3 6-7 6z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 15c0-3.5-2.5-5-6-5 0 3.5 2.5 5 6 5z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M6 21h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MountainFlagIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5">
+      <path
+        d="M3 19l6.5-10L13 14l2-3 6 8H3z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M15 4v6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M15 4l4 2-4 2" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function HillsScene() {
+  return (
+    <svg viewBox="0 0 400 160" className="w-full h-auto">
+      <circle cx="330" cy="58" r="26" fill="#f6c893" opacity="0.9" />
+      <path d="M0 108c50-30 100-30 150 0s100 30 150 0 80-25 100 0v52H0z" fill="#cfe0ca" />
+      <path d="M0 128c60-25 110-20 160 5s100 25 150 0 60-15 90 5v32H0z" fill="#a9c69f" />
+      <path
+        d="M40 160c40-42 90-56 140-40"
+        stroke="#faf6ef"
+        strokeWidth="6"
+        strokeLinecap="round"
+        fill="none"
+        opacity="0.85"
+      />
+      <g stroke="#7b9b74" strokeWidth="2" strokeLinecap="round" fill="none">
+        <path d="M10 155c0-10 4-16 10-18M10 155c0-8-4-13-9-15" />
+        <path d="M390 150c0-9-4-15-9-17M390 150c0-7 3-12 8-14" />
+      </g>
+    </svg>
+  );
+}
 
 export default function Home() {
   const router = useRouter();
@@ -43,7 +172,10 @@ export default function Home() {
         setUserEmail(data.session.user.email || null);
         setAuthChecked(true);
         loadEntries(data.session.user.id);
-        if (typeof window !== "undefined") {
+
+        if (!data.session.user.user_metadata?.has_seen_onboarding) {
+          setScreen("welcome");
+        } else if (typeof window !== "undefined") {
           const params = new URLSearchParams(window.location.search);
           if (params.get("screen") === "form") {
             setScreen("form");
@@ -68,6 +200,11 @@ export default function Home() {
   async function signOut() {
     await supabase.auth.signOut();
     window.location.href = "/login";
+  }
+
+  async function completeOnboarding() {
+    await supabase.auth.updateUser({ data: { has_seen_onboarding: true } });
+    setScreen("spiral");
   }
 
   const [chapterTitle, setChapterTitle] = useState(() => {
@@ -492,7 +629,122 @@ checkAndSendDigest();
     );
   }
 
- if (screen === "spiral") {
+  if (screen === "welcome") {
+    const milestones = [
+      {
+        day: 1,
+        desc: "You started!",
+        accent: "#3b5a48",
+        bg: "#e4ede7",
+        icon: <BookOutlineIcon />,
+      },
+      {
+        day: 5,
+        desc: "Your 5-day email",
+        accent: "#d9704f",
+        bg: "#fbe9e2",
+        icon: <HeartOutlineIcon />,
+      },
+      {
+        day: 10,
+        desc: "Your 10-day assessment",
+        accent: "#9b8bc4",
+        bg: "#ece7f5",
+        icon: <SproutOutlineIcon />,
+      },
+      {
+        day: 15,
+        desc: "Share with a friend",
+        accent: "#d98fa0",
+        bg: "#f7e6ea",
+        icon: <MountainFlagIcon />,
+      },
+    ];
+
+    return (
+      <div className="min-h-screen flex flex-col items-center bg-[#faf6ef] px-6 py-10">
+        <div className="w-full max-w-md flex flex-col items-center">
+          <div className="w-full flex items-center gap-3 bg-white border border-[#eee3d3] rounded-2xl px-4 py-3 mb-8 shadow-sm">
+            <span className="flex-none w-9 h-9 rounded-full bg-[#fbe9e2] text-[#d9704f] flex items-center justify-center">
+              <LineChartIcon />
+            </span>
+            <p className="text-sm text-[#4b5347] leading-snug">
+              Studies show that you forget up to{" "}
+              <span className="font-bold text-[#d9704f]">70%</span> of what you read within the
+              first day.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center mb-6 text-[#3b5a48]">
+            <FeatherBookIcon />
+            <p
+              className="text-[11px] font-semibold tracking-[0.25em] mt-2"
+              style={{ fontVariant: "small-caps" }}
+            >
+              MORE THAN A BOOK
+            </p>
+          </div>
+
+          <h1
+            className="text-center text-[28px] leading-tight text-[#28331f] mb-2"
+            style={{ fontFamily: '"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif' }}
+          >
+            What you reflect on,
+            <br />
+            you remember.
+          </h1>
+          <div className="w-16 h-[3px] bg-[#d9704f] rounded-full mb-4" />
+
+          <p className="text-center text-sm text-[#6b7266] leading-relaxed mb-8 px-2">
+            More Than A Book helps you capture what you're learning and turn it into small daily
+            actions that create real change.
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full mb-8">
+            {milestones.map((m) => (
+              <div
+                key={m.day}
+                className="flex flex-col items-center text-center bg-white border border-[#eee3d3] rounded-xl p-3"
+              >
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm mb-1.5"
+                  style={{ backgroundColor: m.bg, color: m.accent }}
+                >
+                  {m.day}
+                </div>
+                <div style={{ color: m.accent }}>{m.icon}</div>
+                <p className="text-[10px] font-bold tracking-wide text-[#4b5347] mt-1.5">
+                  DAY {m.day}
+                </p>
+                <div
+                  className="w-6 h-[2px] rounded-full my-1.5"
+                  style={{ backgroundColor: m.accent }}
+                />
+                <p className="text-[10.5px] text-[#8a8f83] leading-snug">{m.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="w-full mb-8 rounded-2xl overflow-hidden">
+            <HillsScene />
+          </div>
+
+          <button
+            onClick={completeOnboarding}
+            className="w-full bg-[#2f4a3c] text-white rounded-full py-3.5 font-medium flex items-center justify-center gap-2 mb-3"
+          >
+            Start day 1 <span aria-hidden="true">→</span>
+          </button>
+
+          <p className="text-xs text-[#8a8f83] flex items-center gap-1.5">
+            🔒 Private. Personal. Just for you.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (screen === "spiral") {
     const completedCount = entries.length;
     const nextDayNumber = completedCount + 1;
     const totalSlots = 15;
