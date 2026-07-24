@@ -561,12 +561,20 @@ async function checkAndSendDigest() {
       .eq("user_id", userId);
 
     if (count !== null && count >= 5) {
-      await supabase.auth.updateUser({ data: { day5_digest_sent: true } });
-      fetch("/api/digest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, userEmail }),
-      }).catch((err) => console.error("Digest trigger failed:", err));
+      try {
+        const res = await fetch("/api/digest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, userEmail }),
+        });
+        if (res.ok) {
+          await supabase.auth.updateUser({ data: { day5_digest_sent: true } });
+        } else {
+          console.error("Digest send failed:", await res.text());
+        }
+      } catch (err) {
+        console.error("Digest trigger failed:", err);
+      }
     }
   }
 
@@ -582,12 +590,20 @@ async function checkAndSendDigest() {
       .eq("user_id", userId);
 
     if (count !== null && count >= 10) {
-      await supabase.auth.updateUser({ data: { day10_review_sent: true } });
-      fetch("/api/tenDayReview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, userEmail }),
-      }).catch((err) => console.error("Ten-day review trigger failed:", err));
+      try {
+        const res = await fetch("/api/tenDayReview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId, userEmail }),
+        });
+        if (res.ok) {
+          await supabase.auth.updateUser({ data: { day10_review_sent: true } });
+        } else {
+          console.error("Ten-day review send failed:", await res.text());
+        }
+      } catch (err) {
+        console.error("Ten-day review trigger failed:", err);
+      }
     }
   }
 
