@@ -370,12 +370,16 @@ export default function Home() {
     return values[field];
   }
 
-  function toggleListeningForField(field: ReflectionField) {
-    if (isListening) {
-      recognitionRef.current?.stop();
-      return;
+  function noteManualEdit(field: ReflectionField, value: string) {
+    // Keep the in-progress recognition session's base in sync with manual
+    // edits (e.g. backspacing a bit someone doesn't like) so the next
+    // recognized phrase builds on the edited text instead of overwriting it.
+    if (isListening && activeFieldRef.current === field) {
+      sessionBaseRef.current = value;
     }
+  }
 
+  function startListeningFor(field: ReflectionField) {
     const SpeechRecognitionCtor =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognitionCtor) {
@@ -394,14 +398,28 @@ export default function Home() {
     recognition.lang = "en-US";
 
     recognition.onresult = (event: any) => {
-      let transcript = "";
-      for (let i = 0; i < event.results.length; i++) {
-        transcript += event.results[i][0].transcript;
+      let interimTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          const finalChunk = result[0].transcript.trim();
+          if (finalChunk) {
+            sessionBaseRef.current = sessionBaseRef.current
+              ? `${sessionBaseRef.current} ${finalChunk}`
+              : finalChunk;
+          }
+        } else {
+          interimTranscript += result[0].transcript;
+        }
       }
-      transcript = transcript.replace(/\s+/g, " ").trim();
 
+      interimTranscript = interimTranscript.replace(/\s+/g, " ").trim();
       const base = sessionBaseRef.current;
-      const combined = base ? (transcript ? `${base} ${transcript}` : base) : transcript;
+      const combined = interimTranscript
+        ? base
+          ? `${base} ${interimTranscript}`
+          : interimTranscript
+        : base;
       getFieldSetter(activeFieldRef.current)(combined);
     };
     recognition.onerror = () => {
@@ -414,6 +432,37 @@ export default function Home() {
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
+  }
+
+  function toggleListeningForField(field: ReflectionField) {
+    if (isListening && activeFieldRef.current === field) {
+      recognitionRef.current?.abort();
+      return;
+    }
+
+    if (isListening) {
+      // Switching mid-recording to a different box: fully stop the old
+      // recognition session before starting a fresh one for the new box,
+      // rather than letting the old session keep targeting the wrong field.
+      // Chrome can fire both onerror and onend after abort(), so guard
+      // against starting the new session twice.
+      const old = recognitionRef.current;
+      if (old) {
+        let restarted = false;
+        const restart = () => {
+          if (restarted) return;
+          restarted = true;
+          startListeningFor(field);
+        };
+        old.onresult = null;
+        old.onend = restart;
+        old.onerror = restart;
+        old.abort();
+        return;
+      }
+    }
+
+    startListeningFor(field);
   }
 
   async function generateJournal(editingLevel: "keep" | "flow" | "expand") {
@@ -944,6 +993,7 @@ checkAndSendDigest();
                   onFocus={() => setActiveField(field)}
                   onChange={(e) => {
                     setValue(e.target.value);
+                    noteManualEdit(field, e.target.value);
                     e.target.style.height = "auto";
                     e.target.style.height = e.target.scrollHeight + "px";
                   }}
@@ -997,6 +1047,7 @@ checkAndSendDigest();
                 onFocus={() => setActiveField("extra")}
                 onChange={(e) => {
                   setExtraInput(e.target.value);
+                  noteManualEdit("extra", e.target.value);
                   e.target.style.height = "auto";
                   e.target.style.height = e.target.scrollHeight + "px";
                 }}
